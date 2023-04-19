@@ -34,7 +34,9 @@ error_handler.setFormatter(error_formatter)
 
 error_logger.addHandler(error_handler)
 
+status_logger.info('Application is starting..')
 
+status_logger.info('Loading env variables..')
 load_dotenv()
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
@@ -49,13 +51,22 @@ SQL_DIRVER = os.environ.get('SQL_DRIVER')
 SQL_HOST = os.environ.get('SQL_HOST')
 SQL_PORT = os.environ.get('SQL_PORT')
 
+status_logger.info('Env variables loaded')
+status_logger.info('Connecting to spotify API...')
+
 client_credentials_manager = SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET)
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+
+status_logger.info('Successfully connected to the API')
+status_logger.info('Loading chart power scores..')
 
 chart_power_df = pd.read_excel('chart-power-scores_80s.xlsx')
 chart_power_df = chart_power_df.applymap(lambda s: s.lower() if type(s) == str else s)
 chart_power_df = chart_power_df[['Song', 'Artist', 'Points']].groupby(['Song', 'Artist']).sum()
 chart_power_df.reset_index(inplace=True)
+
+status_logger.info('Successfully loaded chart power scores')
+status_logger.info('Ready to go')
 
 def filter_track_features(track, genre):
     '''
@@ -187,13 +198,15 @@ def req_query_tracks(release_year, genres, start_letters = '', limit=50):
         Number of tracks that should be queried at once. Max number is 50
     '''
     global df
-    alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ']
+    alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     if type(genres) == str:
         genres = [genres]
     for genre in genres:
         for letter in alphabet:
             letters = start_letters + letter
+            status_logger.info(f'Getting number of tracks for: {release_year}, {letters}, {genre}...')
             total_results = get_number_of_tracks(release_year, letters, genre)
+            status_logger.info('Number of tracks received!')
             if total_results < 1000:
                 # print(release_year, letters, genre, total_results)
                 status_logger.info(f'{release_year}-{letters}-{genre}-{total_results}')
@@ -203,7 +216,7 @@ def req_query_tracks(release_year, genres, start_letters = '', limit=50):
                 while offset < total_results:
                     try:
                         track_features = []
-                        result = sp.search(q=f'year:{release_year} track:{letters}* genre:{genre}', type='track', limit=limit, offset=offset)
+                        result = sp.search(q=f'year:{release_year} track:{letters}* genre:{genre}', type='track', limit=limit, offset=offset, market='DE')
                         tracks = result['tracks'] if 'tracks' in result else ''
                         if 'items' in tracks:
                             for track in tracks['items']:
@@ -222,6 +235,7 @@ def req_query_tracks(release_year, genres, start_letters = '', limit=50):
 
 columns = ['name', 'artists', 'album', 'release_date', 'release_date_precision', 'chart_power', 'spotify_id', 'uri', 'popularity', 'danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo', 'duration_ms', 'time_signature', 'isrc', 'genres']
 df = pd.DataFrame(columns=columns)
+
 
 genres = sp.recommendation_genre_seeds()['genres']
 for year in range(1980, 1990):
