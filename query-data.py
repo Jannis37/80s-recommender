@@ -8,8 +8,8 @@ import os
 from numpy import NaN
 import time
 import logging
-# logging.basicConfig(filename='transfer/info.log', level=logging.INFO)
 
+# Create a logger for the status
 status_logger = logging.getLogger('status')
 status_logger.setLevel(logging.INFO)
 
@@ -42,15 +42,6 @@ SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET")
 LAST_FM_API_KEY = os.environ.get("LAST_FM_API")
 
-SQL_USERNAME = os.environ.get('SQL_USERNAME')
-SQL_PASSWORD = os.environ.get('SQL_PASSWORD')
-SQL_SCHEMA=os.environ.get('SQL_SCHEMA')
-SQL_TABLE=os.environ.get('SQL_TABLE')
-SQL_DIALECT = os.environ.get('SQL_DIALECT')
-SQL_DIRVER = os.environ.get('SQL_DRIVER')
-SQL_HOST = os.environ.get('SQL_HOST')
-SQL_PORT = os.environ.get('SQL_PORT')
-
 status_logger.info('Env variables loaded')
 status_logger.info('Connecting to spotify API...')
 
@@ -60,6 +51,7 @@ sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 status_logger.info('Successfully connected to the API')
 status_logger.info('Loading chart power scores..')
 
+# Load the chart power df
 chart_power_df = pd.read_excel('chart-power-scores_80s.xlsx')
 chart_power_df = chart_power_df.applymap(lambda s: s.lower() if type(s) == str else s)
 chart_power_df = chart_power_df[['Song', 'Artist', 'Points']].groupby(['Song', 'Artist']).sum()
@@ -77,6 +69,9 @@ def filter_track_features(track, genre):
     track: Object
         Track returend by the spotify API
 
+    genre: string
+        Genre that should be used
+
     Return
     ------
     relevant_features: Object
@@ -93,17 +88,6 @@ def filter_track_features(track, genre):
         for artist in track['artists']:
             if 'name' in artist:
                 artist_names.append(artist['name'])
-    #         ids = []
-    #         for artist in track['artists']:
-                # if 'id' in artist:
-                    # ids.append(artist['id'])
-            # artists = sp.artists(ids)
-            # artists = artists['artists'] if 'artists' in artists else []
-            # if type(artists) == list:
-                #  for artist in artists:
-                    # genres = ','.join(artist['genres']) if 'genres' in artist else []
-            #         if 'name' in artist:
-            #              artist_names.append(artist['name'])
 
     artist_names = ','.join(artist_names)
     
@@ -168,6 +152,9 @@ def get_number_of_tracks(release_year, start_letters, genre):
     start_letters: string
         Letters the songs start with
 
+    genre: string
+        Genre that should be used
+
     Return
     ------
     num: int
@@ -191,6 +178,9 @@ def req_query_tracks(release_year, genres, start_letters = '', limit=50):
     release_year: int
         Year the tracks were released
 
+    genres: list
+        Genres that should be queried
+
     start_letters: string, default=''
         Letters the songs start with
     
@@ -208,7 +198,6 @@ def req_query_tracks(release_year, genres, start_letters = '', limit=50):
             total_results = get_number_of_tracks(release_year, letters, genre)
             status_logger.info('Number of tracks received!')
             if total_results < 1000:
-                # print(release_year, letters, genre, total_results)
                 status_logger.info(f'{release_year}-{letters}-{genre}-{total_results}')
                 # Loop through results and retrieve tracks
                 offset = 0
@@ -238,5 +227,6 @@ df = pd.DataFrame(columns=columns)
 
 
 genres = sp.recommendation_genre_seeds()['genres']
+alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 for year in range(1980, 1990):
     req_query_tracks(year, genres, '')

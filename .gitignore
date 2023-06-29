@@ -130,3 +130,7 @@ dmypy.json
 
 dump
 data/DE
+unused
+docker
+.DS_Store
+data
