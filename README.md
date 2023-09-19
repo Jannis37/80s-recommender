@@ -5,3 +5,4 @@
 - query-data.py => Abfragen der Daten von der Spotify API
 - recommender.ipynb => Beinhaltet das erstelle Recommender System
 - viz.ipynb => Visualisierungen/Music Map der 80er
+- extra.ipynb => Arbeit nach dem Application Project
